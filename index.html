@@ -1,0 +1,1315 @@
+<!DOCTYPE html>
+<html lang="id" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>INFORMATIKA CROSSWORD - Hardware & Software</title>
+    <!-- Google Fonts: Poppins -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- FontAwesome 6 Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Canvas Confetti CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- Tone.js for Interactive Sound Effects -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            cyan: '#00f2fe',
+                            blue: '#4facfe',
+                            purple: '#7f00ff',
+                            dark: '#050c23',
+                            accent: '#ff007f'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Poppins', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Konfigurasi Dasar & Custom Scrollbar */
+        * {
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: 'Poppins', sans-serif;
+            color: #ffffff;
+            overflow-x: hidden;
+            /* Dynamic Background Injection from JS Config */
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            transition: background 0.5s ease;
+        }
+
+        /* Glassmorphism Styles */
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .glass-card:hover {
+            border-color: rgba(0, 242, 254, 0.4);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 242, 254, 0.15);
+        }
+
+        /* Crossword Grid Styling */
+        .grid-cell {
+            width: 38px;
+            height: 38px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.1rem;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        @media (min-width: 640px) {
+            .grid-cell {
+                width: 44px;
+                height: 44px;
+                font-size: 1.25rem;
+            }
+        }
+
+        .cell-empty {
+            background: transparent;
+            border: 1px solid transparent;
+            pointer-events: none;
+        }
+
+        .cell-filled {
+            background: rgba(15, 23, 42, 0.85);
+            border: 1.5px solid rgba(255, 255, 255, 0.2);
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
+        }
+
+        .cell-filled:hover {
+            border-color: #00f2fe;
+            box-shadow: 0 0 10px rgba(0, 242, 254, 0.4);
+        }
+
+        .cell-active {
+            background: rgba(0, 242, 254, 0.25) !important;
+            border: 2px solid #00f2fe !important;
+            box-shadow: 0 0 15px rgba(0, 242, 254, 0.6) !important;
+            animation: pulse-border 1.5s infinite alternate;
+        }
+
+        .cell-focused {
+            background: #00f2fe !important;
+            color: #050c23 !important;
+            border: 2px solid #ffffff !important;
+            box-shadow: 0 0 20px #00f2fe !important;
+            transform: scale(1.05);
+            z-index: 10;
+        }
+
+        .cell-correct {
+            background: rgba(16, 185, 129, 0.3) !important;
+            border-color: #10b981 !important;
+            color: #34d399 !important;
+        }
+
+        .cell-incorrect {
+            background: rgba(239, 68, 68, 0.3) !important;
+            border-color: #ef4444 !important;
+            color: #fca5a5 !important;
+            animation: shake 0.4s ease-in-out;
+        }
+
+        .cell-number {
+            position: absolute;
+            top: 2px;
+            left: 3px;
+            font-size: 0.65rem;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.7);
+            line-height: 1;
+            pointer-events: none;
+        }
+
+        .cell-focused .cell-number {
+            color: #050c23;
+        }
+
+        /* Animations */
+        @keyframes pulse-border {
+            0% { border-color: rgba(0, 242, 254, 0.5); }
+            100% { border-color: rgba(127, 0, 255, 0.9); }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-4px); }
+            40%, 80% { transform: translateX(4px); }
+        }
+
+        /* Neon Glow Text */
+        .neon-text-blue {
+            text-shadow: 0 0 10px rgba(0, 242, 254, 0.7), 0 0 20px rgba(0, 242, 254, 0.4);
+        }
+
+        .neon-text-purple {
+            text-shadow: 0 0 10px rgba(127, 0, 255, 0.7), 0 0 20px rgba(127, 0, 255, 0.4);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(5, 12, 35, 0.5);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(0, 242, 254, 0.3);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(0, 242, 254, 0.6);
+        }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen">
+
+    <!-- Overlay Transparan Bergradien Futuristik -->
+    <div class="fixed inset-0 bg-gradient-to-br from-[#050c23]/85 via-[#0b132b]/80 to-[#1c0b2b]/85 pointer-events-none -z-10"></div>
+
+    <!-- ================= HALAMAN PEMBUKA (WELCOME SCREEN) ================= -->
+    <div id="welcome-screen" class="flex-1 flex items-center justify-center p-4 sm:p-6 transition-all duration-500">
+        <div class="glass-panel max-w-4xl w-full rounded-3xl p-6 sm:p-10 text-center relative overflow-hidden border border-cyan-500/30">
+            <!-- Decorative Cyberpunk Glows -->
+            <div class="absolute -top-24 -left-24 w-60 h-60 bg-cyan-500/20 rounded-full blur-3xl pointer-events-none"></div>
+            <div class="absolute -bottom-24 -right-24 w-60 h-60 bg-purple-500/20 rounded-full blur-3xl pointer-events-none"></div>
+
+            <!-- Top Header Badge -->
+            <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-400/30 text-cyan-300 text-xs sm:text-sm font-semibold mb-6">
+                <i class="fa-solid fa-graduation-cap"></i> Media Pembelajaran Informatika SMP
+            </div>
+
+            <!-- Title & Subtitle -->
+            <h1 class="text-4xl sm:text-6xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 neon-text-blue mb-4">
+                INFORMATIKA CROSSWORD
+            </h1>
+            <p class="text-slate-300 text-base sm:text-xl font-medium max-w-2xl mx-auto mb-8">
+                Tantangan Teka-Teki Silang Interaktif Materi <span class="text-cyan-300 font-semibold">Hardware</span> & <span class="text-purple-300 font-semibold">Software</span> Komputer
+            </p>
+
+            <!-- Grid Ilustrasi Ikon Teknologi -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 max-w-2xl mx-auto mb-10">
+                <div class="glass-card p-4 rounded-2xl text-center">
+                    <i class="fa-solid fa-microchip text-3xl text-cyan-400 mb-2"></i>
+                    <p class="text-xs font-semibold text-slate-300">Processor</p>
+                </div>
+                <div class="glass-card p-4 rounded-2xl text-center">
+                    <i class="fa-solid fa-display text-3xl text-blue-400 mb-2"></i>
+                    <p class="text-xs font-semibold text-slate-300">Monitor</p>
+                </div>
+                <div class="glass-card p-4 rounded-2xl text-center">
+                    <i class="fa-solid fa-compact-disc text-3xl text-purple-400 mb-2"></i>
+                    <p class="text-xs font-semibold text-slate-300">Software</p>
+                </div>
+                <div class="glass-card p-4 rounded-2xl text-center">
+                    <i class="fa-solid fa-network-wired text-3xl text-pink-400 mb-2"></i>
+                    <p class="text-xs font-semibold text-slate-300">Sistem Operasi</p>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+                <button onclick="startGame()" class="w-full sm:w-auto px-8 py-4 rounded-2xl bg-gradient-to-r from-cyan-500 via-blue-600 to-purple-600 text-white font-bold text-lg shadow-lg shadow-cyan-500/30 hover:shadow-cyan-500/50 hover:scale-105 active:scale-95 transition-all duration-300 flex items-center justify-center gap-3">
+                    <i class="fa-solid fa-gamepad text-xl"></i> MULAI BERMAIN
+                </button>
+                <button onclick="openModal('instructions-modal')" class="w-full sm:w-auto px-6 py-4 rounded-2xl bg-slate-800/80 hover:bg-slate-700/80 text-cyan-300 font-semibold text-base border border-cyan-500/30 hover:border-cyan-400 transition-all duration-300 flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-circle-info"></i> PETUNJUK PERMAINAN
+                </button>
+            </div>
+
+            <!-- Configuration Trigger & Footer Info -->
+            <div class="mt-10 pt-6 border-t border-slate-700/50 flex flex-wrap items-center justify-between gap-4 text-xs text-slate-400">
+                <span><i class="fa-solid fa-layer-group"></i> 15 Soal Pertanyaan</span>
+                <button onclick="openModal('bg-config-modal')" class="text-cyan-400 hover:underline flex items-center gap-1">
+                    <i class="fa-solid fa-image"></i> Ganti Background GitHub
+                </button>
+                <span><i class="fa-solid fa-code"></i> Informatika Kelas 7/8 SMP</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= HALAMAN PERMAINAN TTS (GAME SCREEN) ================= -->
+    <div id="game-screen" class="hidden flex-1 flex flex-col p-2 sm:p-4 md:p-6 max-w-7xl mx-auto w-full">
+        <!-- Header Bar Dashboard -->
+        <header class="glass-panel rounded-2xl p-3 sm:p-4 mb-4 flex flex-wrap items-center justify-between gap-3 border border-cyan-500/20">
+            <div class="flex items-center gap-3">
+                <button onclick="confirmReturnHome()" class="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition" title="Kembali ke Menu">
+                    <i class="fa-solid fa-house"></i>
+                </button>
+                <div>
+                    <h2 class="font-bold text-lg sm:text-xl text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-400">
+                        INFORMATIKA CROSSWORD
+                    </h2>
+                    <p class="text-xs text-slate-400">Hardware & Software</p>
+                </div>
+            </div>
+
+            <!-- Stats Bar -->
+            <div class="flex items-center gap-3 sm:gap-6 text-xs sm:text-sm">
+                <!-- Timer -->
+                <div class="glass-card px-3 py-1.5 rounded-xl flex items-center gap-2">
+                    <i class="fa-solid fa-clock text-cyan-400"></i>
+                    <div>
+                        <span class="block text-[10px] text-slate-400 font-medium">WAKTU</span>
+                        <span id="timer-display" class="font-mono font-bold text-cyan-300 text-sm">00:00</span>
+                    </div>
+                </div>
+
+                <!-- Progress Soal -->
+                <div class="glass-card px-3 py-1.5 rounded-xl flex items-center gap-2">
+                    <i class="fa-solid fa-check-double text-purple-400"></i>
+                    <div>
+                        <span class="block text-[10px] text-slate-400 font-medium">TERJAWAB</span>
+                        <span id="progress-display" class="font-bold text-purple-300 text-sm">0 / 15</span>
+                    </div>
+                </div>
+
+                <!-- Skor -->
+                <div class="glass-card px-3 py-1.5 rounded-xl flex items-center gap-2">
+                    <i class="fa-solid fa-trophy text-amber-400"></i>
+                    <div>
+                        <span class="block text-[10px] text-slate-400 font-medium">SKOR</span>
+                        <span id="score-display" class="font-bold text-amber-300 text-sm">0</span>
+                    </div>
+                </div>
+
+                <!-- Audio Toggle -->
+                <button id="sound-toggle-btn" onclick="toggleSound()" class="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-400 transition" title="Toggle Suara">
+                    <i class="fa-solid fa-volume-high"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Workspace (Grid + Sidebar Clues) -->
+        <main class="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-4 items-start min-h-0">
+
+            <!-- Crossword Grid Workspace (8 Cols on Desktop) -->
+            <div class="lg:col-span-7 xl:col-span-8 glass-panel rounded-2xl p-3 sm:p-5 flex flex-col items-center justify-center relative overflow-hidden min-h-[420px]">
+                
+                <!-- Active Clue Banner Above Grid -->
+                <div id="active-clue-banner" class="w-full bg-slate-900/90 border border-cyan-500/40 rounded-xl p-3 mb-4 text-center text-sm sm:text-base font-semibold text-cyan-300 flex items-center justify-between gap-2 shadow-lg">
+                    <span class="text-xs px-2.5 py-1 rounded-md bg-cyan-500/20 text-cyan-300 border border-cyan-400/30" id="active-clue-tag">SOAL</span>
+                    <span id="active-clue-text" class="flex-1 truncate text-slate-200">Klik nomor atau sel kotak untuk memilih pertanyaan...</span>
+                    <button onclick="toggleDirection()" class="text-xs px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-600" title="Ubah Arah Focus">
+                        <i class="fa-solid fa-arrows-rotate"></i>
+                    </button>
+                </div>
+
+                <!-- Zoom & Controls Tool -->
+                <div class="absolute top-3 right-3 flex items-center gap-1 bg-slate-900/80 rounded-lg p-1 border border-slate-700 z-10 text-xs">
+                    <button onclick="adjustGridZoom(0.1)" class="w-7 h-7 flex items-center justify-center hover:bg-slate-800 rounded text-slate-300"><i class="fa-solid fa-magnifying-glass-plus"></i></button>
+                    <button onclick="adjustGridZoom(-0.1)" class="w-7 h-7 flex items-center justify-center hover:bg-slate-800 rounded text-slate-300"><i class="fa-solid fa-magnifying-glass-minus"></i></button>
+                    <button onclick="resetGridZoom()" class="px-2 h-7 flex items-center justify-center hover:bg-slate-800 rounded text-slate-300 font-semibold">Reset</button>
+                </div>
+
+                <!-- Grid Scrollable Container -->
+                <div class="w-full overflow-auto flex justify-center p-2" id="grid-scroll-wrapper">
+                    <div id="crossword-grid" class="grid gap-1 p-2 transition-transform duration-200 origin-top">
+                        <!-- Grid Cells Generated Dynamically by JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Clues Side Panel (4 Cols on Desktop) -->
+            <div class="lg:col-span-5 xl:col-span-4 glass-panel rounded-2xl p-4 flex flex-col h-full max-h-[600px]">
+                <!-- Tabs Selector -->
+                <div class="flex border-b border-slate-700 mb-3">
+                    <button id="tab-across-btn" onclick="switchClueTab('across')" class="flex-1 py-2 font-bold text-sm text-cyan-400 border-b-2 border-cyan-400 flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-arrow-right-long"></i> MENDATAR (<span id="across-count">0</span>)
+                    </button>
+                    <button id="tab-down-btn" onclick="switchClueTab('down')" class="flex-1 py-2 font-semibold text-sm text-slate-400 hover:text-slate-200 border-b-2 border-transparent flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-arrow-down-long"></i> MENURUN (<span id="down-count">0</span>)
+                    </button>
+                </div>
+
+                <!-- Scrollable Clues List -->
+                <div class="flex-1 overflow-y-auto space-y-2 pr-1" id="clues-container">
+                    <!-- Clues List Items Generated Dynamically -->
+                </div>
+            </div>
+        </main>
+
+        <!-- Bottom Action Button Toolbar & Soft Keyboard Controls -->
+        <footer class="mt-4 flex flex-col gap-3">
+            <div class="glass-panel rounded-2xl p-3 flex flex-wrap items-center justify-center sm:justify-between gap-2 border border-slate-700/50">
+                <div class="flex flex-wrap items-center gap-2">
+                    <button onclick="checkAnswers()" class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-bold text-sm shadow-md shadow-emerald-500/20 transition flex items-center gap-2">
+                        <i class="fa-solid fa-circle-check"></i> CEK JAWABAN
+                    </button>
+                    <button onclick="giveHint()" class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white font-bold text-sm shadow-md shadow-amber-500/20 transition flex items-center gap-2">
+                        <i class="fa-solid fa-lightbulb"></i> PETUNJUK (HINT)
+                    </button>
+                    <button onclick="clearCurrentWord()" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-sm border border-slate-600 transition flex items-center gap-2">
+                        <i class="fa-solid fa-eraser"></i> HAPUS JAWABAN
+                    </button>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <button onclick="toggleSoftKeyboard()" class="px-3 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-300 font-semibold text-sm border border-cyan-500/30 transition flex items-center gap-2">
+                        <i class="fa-solid fa-keyboard"></i> <span class="hidden sm:inline">Soft Keyboard</span>
+                    </button>
+                    <button onclick="confirmRestartGame()" class="px-4 py-2.5 rounded-xl bg-rose-600/80 hover:bg-rose-500 text-white font-bold text-sm shadow-md transition flex items-center gap-2">
+                        <i class="fa-solid fa-rotate-right"></i> ULANGI
+                    </button>
+                </div>
+            </div>
+
+            <!-- Virtual Soft Keyboard Panel (For Touch Screen Devices) -->
+            <div id="soft-keyboard" class="hidden glass-panel rounded-2xl p-3 border border-cyan-500/30 max-w-3xl mx-auto w-full transition-all">
+                <div class="flex flex-col gap-1.5">
+                    <!-- Row 1 -->
+                    <div class="flex justify-center gap-1">
+                        <button onclick="handleVirtualKey('Q')" class="key-btn">Q</button>
+                        <button onclick="handleVirtualKey('W')" class="key-btn">W</button>
+                        <button onclick="handleVirtualKey('E')" class="key-btn">E</button>
+                        <button onclick="handleVirtualKey('R')" class="key-btn">R</button>
+                        <button onclick="handleVirtualKey('T')" class="key-btn">T</button>
+                        <button onclick="handleVirtualKey('Y')" class="key-btn">Y</button>
+                        <button onclick="handleVirtualKey('U')" class="key-btn">U</button>
+                        <button onclick="handleVirtualKey('I')" class="key-btn">I</button>
+                        <button onclick="handleVirtualKey('O')" class="key-btn">O</button>
+                        <button onclick="handleVirtualKey('P')" class="key-btn">P</button>
+                    </div>
+                    <!-- Row 2 -->
+                    <div class="flex justify-center gap-1">
+                        <button onclick="handleVirtualKey('A')" class="key-btn">A</button>
+                        <button onclick="handleVirtualKey('S')" class="key-btn">S</button>
+                        <button onclick="handleVirtualKey('D')" class="key-btn">D</button>
+                        <button onclick="handleVirtualKey('F')" class="key-btn">F</button>
+                        <button onclick="handleVirtualKey('G')" class="key-btn">G</button>
+                        <button onclick="handleVirtualKey('H')" class="key-btn">H</button>
+                        <button onclick="handleVirtualKey('J')" class="key-btn">J</button>
+                        <button onclick="handleVirtualKey('K')" class="key-btn">K</button>
+                        <button onclick="handleVirtualKey('L')" class="key-btn">L</button>
+                    </div>
+                    <!-- Row 3 -->
+                    <div class="flex justify-center gap-1">
+                        <button onclick="handleVirtualKey('Z')" class="key-btn">Z</button>
+                        <button onclick="handleVirtualKey('X')" class="key-btn">X</button>
+                        <button onclick="handleVirtualKey('C')" class="key-btn">C</button>
+                        <button onclick="handleVirtualKey('V')" class="key-btn">V</button>
+                        <button onclick="handleVirtualKey('B')" class="key-btn">B</button>
+                        <button onclick="handleVirtualKey('N')" class="key-btn">N</button>
+                        <button onclick="handleVirtualKey('M')" class="key-btn">M</button>
+                        <button onclick="handleVirtualKey('BACKSPACE')" class="key-btn-wide bg-rose-900/60 text-rose-200 hover:bg-rose-800"><i class="fa-solid fa-backspace"></i></button>
+                    </div>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- ================= MODAL HALAMAN HASIL / KEMENANGAN ================= -->
+    <div id="result-modal" class="fixed inset-0 bg-black/80 backdrop-blur-md hidden items-center justify-center p-4 z-50">
+        <div class="glass-panel max-w-lg w-full rounded-3xl p-6 sm:p-8 text-center border border-emerald-500/40 relative overflow-hidden shadow-2xl">
+            <!-- Glow background -->
+            <div class="absolute -top-20 -left-20 w-48 h-48 bg-emerald-500/30 rounded-full blur-3xl pointer-events-none"></div>
+
+            <div class="w-20 h-20 mx-auto rounded-full bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-4xl text-slate-900 shadow-lg shadow-emerald-500/40 mb-4 animate-bounce">
+                <i class="fa-solid fa-trophy"></i>
+            </div>
+
+            <h2 class="text-3xl sm:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400 mb-2">
+                SELAMAT! KAMU BERHASIL!
+            </h2>
+            <p class="text-slate-300 text-sm mb-6">Kamu telah menyelesaikan seluruh teka-teki silang Informatika!</p>
+
+            <!-- Stats Grid Breakdown -->
+            <div class="grid grid-cols-3 gap-3 mb-6">
+                <div class="glass-card p-3 rounded-xl">
+                    <span class="block text-[11px] text-slate-400">TOTAL SKOR</span>
+                    <span id="res-score" class="text-2xl font-black text-emerald-400">150</span>
+                    <span class="text-[10px] text-slate-400 block">Maks: 150</span>
+                </div>
+                <div class="glass-card p-3 rounded-xl">
+                    <span class="block text-[11px] text-slate-400">WAKTU</span>
+                    <span id="res-time" class="text-2xl font-black text-cyan-400">03:45</span>
+                    <span class="text-[10px] text-slate-400 block">Menit : Detik</span>
+                </div>
+                <div class="glass-card p-3 rounded-xl">
+                    <span class="block text-[11px] text-slate-400">AKURASI</span>
+                    <span id="res-accuracy" class="text-2xl font-black text-purple-400">100%</span>
+                    <span class="text-[10px] text-slate-400 block">Keberhasilan</span>
+                </div>
+            </div>
+
+            <div class="p-4 rounded-xl bg-slate-900/80 border border-slate-700/60 mb-6 text-left">
+                <h4 class="text-xs font-bold text-slate-300 mb-1 flex items-center gap-1.5">
+                    <i class="fa-solid fa-award text-amber-400"></i> Catatan Evaluasi Guru:
+                </h4>
+                <p id="res-evaluation" class="text-xs text-slate-300">Luar biasa! Pemahamanmu mengenai komponen Hardware dan Software komputer sangat baik.</p>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex flex-col sm:flex-row items-center gap-3">
+                <button onclick="startGame()" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-bold text-sm shadow-lg shadow-emerald-500/30 hover:scale-105 transition flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-rotate-right"></i> MAIN LAGI
+                </button>
+                <button onclick="returnToMenu()" class="w-full py-3.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-sm border border-slate-600 transition flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-house"></i> KEMBALI KE MENU
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= MODAL PETUNJUK PERMAINAN ================= -->
+    <div id="instructions-modal" class="fixed inset-0 bg-black/80 backdrop-blur-md hidden items-center justify-center p-4 z-50">
+        <div class="glass-panel max-w-xl w-full rounded-3xl p-6 sm:p-8 border border-cyan-500/40 relative max-h-[90vh] overflow-y-auto">
+            <button onclick="closeModal('instructions-modal')" class="absolute top-4 right-4 text-slate-400 hover:text-white text-xl">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <h3 class="text-2xl font-bold text-cyan-300 mb-4 flex items-center gap-2">
+                <i class="fa-solid fa-book-open"></i> Petunjuk Permainan
+            </h3>
+
+            <div class="space-y-4 text-sm text-slate-300 leading-relaxed">
+                <div class="p-3 rounded-xl bg-slate-900/60 border border-slate-700/50">
+                    <h4 class="font-bold text-cyan-400 mb-1"><i class="fa-solid fa-1"></i> Cara Mengisi Kotak</h4>
+                    <p>Klik kotak TTS atau pilih pertanyaan di panel sebelah kanan. Ketik huruf menggunakan keyboard laptop atau gunakan Soft Keyboard virtual.</p>
+                </div>
+
+                <div class="p-3 rounded-xl bg-slate-900/60 border border-slate-700/50">
+                    <h4 class="font-bold text-purple-400 mb-1"><i class="fa-solid fa-2"></i> Mengubah Arah Ketik</h4>
+                    <p>Klik ulang kotak perpotongan untuk mengganti arah ketik dari <strong>Mendatar (Horizontal)</strong> ke <strong>Menurun (Vertical)</strong> atau sebaliknya.</p>
+                </div>
+
+                <div class="p-3 rounded-xl bg-slate-900/60 border border-slate-700/50">
+                    <h4 class="font-bold text-amber-400 mb-1"><i class="fa-solid fa-3"></i> Penilaian & Hint</h4>
+                    <p>Setiap kata yang berhasil dijawab dengan benar memberikan <strong>+10 poin</strong>. Gunakan tombol <strong>PETUNJUK (HINT)</strong> jika mengalami kesulitan.</p>
+                </div>
+            </div>
+
+            <button onclick="closeModal('instructions-modal')" class="w-full mt-6 py-3 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-sm transition">
+                SAYA MENGERTI
+            </button>
+        </div>
+    </div>
+
+    <!-- ================= MODAL KONFIGURASI BACKGROUND GITHUB ================= -->
+    <div id="bg-config-modal" class="fixed inset-0 bg-black/80 backdrop-blur-md hidden items-center justify-center p-4 z-50">
+        <div class="glass-panel max-w-lg w-full rounded-3xl p-6 border border-cyan-500/40">
+            <h3 class="text-xl font-bold text-cyan-300 mb-2 flex items-center gap-2">
+                <i class="fa-solid fa-sliders"></i> Konfigurasi Gambar Background
+            </h3>
+            <p class="text-xs text-slate-300 mb-4">
+                Masukkan URL gambar dari GitHub (Gunakan format <strong>RAW URL</strong> dari GitHub agar gambar dapat dimuat secara langsung).
+            </p>
+
+            <div class="mb-4">
+                <label class="block text-xs font-semibold text-slate-300 mb-1">GitHub Raw Image URL:</label>
+                <input type="text" id="bg-url-input" class="w-full px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-cyan-300 text-xs font-mono focus:border-cyan-400 focus:outline-none" placeholder="https://raw.githubusercontent.com/username/repository/main/background.jpg">
+            </div>
+
+            <div class="flex items-center justify-end gap-2">
+                <button onclick="closeModal('bg-config-modal')" class="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs hover:bg-slate-700">
+                    Batal
+                </button>
+                <button onclick="applyNewBgUrl()" class="px-4 py-2 rounded-xl bg-cyan-600 text-white font-semibold text-xs hover:bg-cyan-500">
+                    Simpan & Terapkan
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= MODAL KONFIRMASI CUSTOM ================= -->
+    <div id="confirm-modal" class="fixed inset-0 bg-black/80 backdrop-blur-md hidden items-center justify-center p-4 z-50">
+        <div class="glass-panel max-w-md w-full rounded-3xl p-6 text-center border border-rose-500/40 relative shadow-2xl">
+            <div class="w-16 h-16 mx-auto rounded-full bg-rose-500/20 text-rose-400 flex items-center justify-center text-3xl mb-4">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <h3 id="confirm-modal-title" class="text-xl font-bold text-white mb-2">Konfirmasi Navigasi</h3>
+            <p id="confirm-modal-msg" class="text-xs text-slate-300 mb-6">Apakah kamu yakin ingin melanjutkan?</p>
+            <div class="flex items-center justify-center gap-3">
+                <button onclick="closeModal('confirm-modal')" class="w-full py-2.5 rounded-xl bg-slate-800 text-slate-300 font-semibold text-xs hover:bg-slate-700 transition">
+                    Batal
+                </button>
+                <button id="confirm-modal-action-btn" class="w-full py-2.5 rounded-xl bg-rose-600 text-white font-bold text-xs hover:bg-rose-500 transition shadow-lg shadow-rose-600/30">
+                    Ya, Lanjutkan
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= LOGIKA JAVASCRIPT ================= -->
+    <script>
+        /* ==========================================================================
+           1. KONFIGURASI APLIKASI & VARIABLE KUNCI
+           ========================================================================== */
+        const CONFIG = {
+            // Masukkan URL Gambar Raw dari GitHub di sini. Contoh:
+            // 'https://raw.githubusercontent.com/user/repo/main/background.jpg'
+            BG_IMAGE_URL: 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1920&q=80',
+            POINTS_PER_WORD: 10
+        };
+
+        // Custom CSS rule injection for virtual keys
+        const styleSheet = document.createElement("style");
+        styleSheet.innerText = `
+            .key-btn {
+                background: rgba(30, 41, 59, 0.9);
+                border: 1.5px solid rgba(255, 255, 255, 0.15);
+                color: #e2e8f0;
+                font-weight: 700;
+                font-size: 0.9rem;
+                padding: 10px 14px;
+                border-radius: 8px;
+                cursor: pointer;
+                transition: all 0.15s;
+            }
+            .key-btn:hover {
+                background: #00f2fe;
+                color: #050c23;
+                border-color: #ffffff;
+            }
+            .key-btn-wide {
+                padding: 10px 18px;
+                font-weight: 700;
+                border-radius: 8px;
+                cursor: pointer;
+            }
+        `;
+        document.head.appendChild(styleSheet);
+
+        /* ==========================================================================
+           2. DATA SOAL TTS (MATERI HARDWARE & SOFTWARE - 15 KATA VALID)
+           ========================================================================== */
+        const WORDS_DATA = [
+            {
+                id: 1, number: 1, word: "LINUX", direction: "across", row: 0, col: 0,
+                category: "Software", clue: "Sistem operasi open-source berlogo pinguin yang stabil dan populer untuk server."
+            },
+            {
+                id: 2, number: 2, word: "MONITOR", direction: "down", row: 0, col: 5,
+                category: "Hardware", clue: "Perangkat keras output untuk menampilkan visual gambar/video komputer."
+            },
+            {
+                id: 3, number: 3, word: "HARDWARE", direction: "down", row: 1, col: 1,
+                category: "Hardware", clue: "Komponen fisik komputer yang dapat disentuh dan dilihat secara langsung."
+            },
+            {
+                id: 4, number: 4, word: "PROCESSOR", direction: "across", row: 1, col: 3,
+                category: "Hardware", clue: "Otak utama komputer yang bertugas memproses seluruh instruksi dan data."
+            },
+            {
+                id: 5, number: 5, word: "SOFTWARE", direction: "down", row: 1, col: 9,
+                category: "Software", clue: "Perangkat lunak berupa kumpulan program dan data instruksi komputer."
+            },
+            {
+                id: 6, number: 6, word: "WINDOWS", direction: "across", row: 5, col: 1,
+                category: "Software", clue: "Sistem operasi populer berbasis GUI buatan perusahaan Microsoft."
+            },
+            {
+                id: 7, number: 7, word: "ANTIVIRUS", direction: "across", row: 6, col: 9,
+                category: "Software", clue: "Perangkat lunak pelindung komputer dari ancaman virus dan malware."
+            },
+            {
+                id: 8, number: 8, word: "HARDDISK", direction: "down", row: 1, col: 12,
+                category: "Hardware", clue: "Media penyimpanan data sekunder berkapasitas besar secara permanen."
+            },
+            {
+                id: 9, number: 9, word: "POWERPOINT", direction: "down", row: 2, col: 15,
+                category: "Software", clue: "Aplikasi buatan Microsoft untuk membuat presentasi berbentuk slide."
+            },
+            {
+                id: 10, number: 10, word: "PRINTER", direction: "across", row: 7, col: 0,
+                category: "Hardware", clue: "Perangkat keras output untuk mencetak dokumen digital ke atas kertas."
+            },
+            {
+                id: 11, number: 11, word: "RAM", direction: "down", row: 7, col: 6,
+                category: "Hardware", clue: "Memori penyimpanan acak sementara saat program komputer dijalankan."
+            },
+            {
+                id: 12, number: 12, word: "MOUSE", direction: "across", row: 9, col: 6,
+                category: "Hardware", clue: "Perangkat penunjuk (pointing device) untuk menggerakkan kursor di layar."
+            },
+            {
+                id: 13, number: 13, word: "SCANNER", direction: "down", row: 9, col: 9,
+                category: "Hardware", clue: "Perangkat input untuk merubah dokumen kertas menjadi file digital."
+            },
+            {
+                id: 14, number: 14, word: "KEYBOARD", direction: "across", row: 11, col: 4,
+                category: "Hardware", clue: "Perangkat keras input utama yang berisi tombol huruf, angka, dan simbol."
+            },
+            {
+                id: 15, number: 15, word: "BROWSER", direction: "across", row: 14, col: 4,
+                category: "Software", clue: "Perangkat lunak aplikasi untuk mengakses dan menjelajahi situs di internet."
+            }
+        ];
+
+        /* ==========================================================================
+           3. GAME STATE MANAGEMENT
+           ========================================================================== */
+        const GRID_ROWS = 16;
+        const GRID_COLS = 18;
+
+        let gridMatrix = []; // Matrix 16x18 holding cell data
+        let activeWordId = 1;
+        let activeDirection = 'across';
+        let focusedCellRow = -1;
+        let focusedCellCol = -1;
+        
+        let timerInterval = null;
+        let secondsElapsed = 0;
+        let isGameFinished = false;
+        let isSoundEnabled = true;
+        let currentZoomScale = 1.0;
+
+        /* ==========================================================================
+           4. AUDIO SYNTHESIZER (TONE.JS) EFEK SUARA
+           ========================================================================== */
+        let synth = null;
+        function initAudio() {
+            if (!synth && typeof Tone !== 'undefined') {
+                try {
+                    synth = new Tone.Synth().toDestination();
+                } catch (e) {
+                    console.log("Tone JS Audio Error", e);
+                }
+            }
+        }
+
+        function playSound(type) {
+            if (!isSoundEnabled || !synth) return;
+            try {
+                if (Tone.context.state !== 'running') {
+                    Tone.start();
+                }
+                const now = Tone.now();
+                if (type === 'type') {
+                    synth.triggerAttackRelease("C5", "8n", now, 0.2);
+                } else if (type === 'correct') {
+                    synth.triggerAttackRelease("G5", "8n", now);
+                    synth.triggerAttackRelease("C6", "8n", now + 0.1);
+                } else if (type === 'wrong') {
+                    synth.triggerAttackRelease("A3", "8n", now);
+                } else if (type === 'win') {
+                    synth.triggerAttackRelease("C5", "8n", now);
+                    synth.triggerAttackRelease("E5", "8n", now + 0.15);
+                    synth.triggerAttackRelease("G5", "8n", now + 0.3);
+                    synth.triggerAttackRelease("C6", "4n", now + 0.45);
+                }
+            } catch(e) {}
+        }
+
+        function toggleSound() {
+            isSoundEnabled = !isSoundEnabled;
+            const btn = document.getElementById('sound-toggle-btn');
+            btn.innerHTML = isSoundEnabled ? '<i class="fa-solid fa-volume-high"></i>' : '<i class="fa-solid fa-volume-xmark text-rose-400"></i>';
+        }
+
+        /* ==========================================================================
+           5. INITIALIZATION & BACKGROUND SETTING
+           ========================================================================== */
+        window.onload = function() {
+            applyBackgroundConfig(CONFIG.BG_IMAGE_URL);
+            document.getElementById('bg-url-input').value = CONFIG.BG_IMAGE_URL;
+            buildGridData();
+            
+            // Register Keyboard Global Listener
+            document.addEventListener('keydown', handlePhysicalKeyDown);
+        };
+
+        function applyBackgroundConfig(url) {
+            CONFIG.BG_IMAGE_URL = url;
+            document.body.style.backgroundImage = `linear-gradient(rgba(5, 12, 35, 0.75), rgba(5, 12, 35, 0.85)), url('${url}')`;
+        }
+
+        function applyNewBgUrl() {
+            const inputVal = document.getElementById('bg-url-input').value.trim();
+            if (inputVal) {
+                applyBackgroundConfig(inputVal);
+                closeModal('bg-config-modal');
+            }
+        }
+
+        /* ==========================================================================
+           6. MATRIX GRID BUILDING & RENDERING
+           ========================================================================== */
+        function buildGridData() {
+            gridMatrix = Array.from({ length: GRID_ROWS }, () => 
+                Array.from({ length: GRID_COLS }, () => ({
+                    letter: '',
+                    userInput: '',
+                    words: [],
+                    number: null,
+                    isFilled: false,
+                    isCorrect: false
+                }))
+            );
+
+            WORDS_DATA.forEach(wordObj => {
+                const { id, number, word, direction, row, col } = wordObj;
+                for (let i = 0; i < word.length; i++) {
+                    const r = direction === 'across' ? row : row + i;
+                    const c = direction === 'across' ? col + i : col;
+                    
+                    const cell = gridMatrix[r][c];
+                    cell.letter = word[i].toUpperCase();
+                    cell.isFilled = true;
+                    if (!cell.words.includes(id)) cell.words.push(id);
+                    
+                    if (i === 0) {
+                        cell.number = number;
+                    }
+                }
+            });
+        }
+
+        function renderGridUI() {
+            const gridContainer = document.getElementById('crossword-grid');
+            gridContainer.style.gridTemplateColumns = `repeat(${GRID_COLS}, minmax(0, 1fr))`;
+            gridContainer.innerHTML = '';
+
+            const activeWord = WORDS_DATA.find(w => w.id === activeWordId);
+            const activeCells = getActiveWordCells(activeWord);
+
+            for (let r = 0; r < GRID_ROWS; r++) {
+                for (let c = 0; c < GRID_COLS; c++) {
+                    const cellData = gridMatrix[r][c];
+                    const cellEl = document.createElement('div');
+                    cellEl.id = `cell-${r}-${c}`;
+
+                    if (!cellData.isFilled) {
+                        cellEl.className = 'grid-cell cell-empty';
+                    } else {
+                        cellEl.className = 'grid-cell cell-filled';
+
+                        // Number label
+                        if (cellData.number) {
+                            const numSpan = document.createElement('span');
+                            numSpan.className = 'cell-number';
+                            numSpan.innerText = cellData.number;
+                            cellEl.appendChild(numSpan);
+                        }
+
+                        // Text Content
+                        const textSpan = document.createElement('span');
+                        textSpan.innerText = cellData.userInput;
+                        cellEl.appendChild(textSpan);
+
+                        // Highlight State Logic
+                        const isCellInActiveWord = activeCells.some(cell => cell.r === r && cell.c === c);
+                        const isCellFocused = (r === focusedCellRow && c === focusedCellCol);
+
+                        if (cellData.isCorrect) {
+                            cellEl.classList.add('cell-correct');
+                        } else if (isCellFocused) {
+                            cellEl.classList.add('cell-focused');
+                        } else if (isCellInActiveWord) {
+                            cellEl.classList.add('cell-active');
+                        }
+
+                        cellEl.addEventListener('click', () => handleCellClick(r, c));
+                    }
+                    gridContainer.appendChild(cellEl);
+                }
+            }
+        }
+
+        function getActiveWordCells(wordObj) {
+            if (!wordObj) return [];
+            const cells = [];
+            for (let i = 0; i < wordObj.word.length; i++) {
+                const r = wordObj.direction === 'across' ? wordObj.row : wordObj.row + i;
+                const c = wordObj.direction === 'across' ? wordObj.col + i : wordObj.col;
+                cells.push({ r, c });
+            }
+            return cells;
+        }
+
+        function renderCluesUI() {
+            const cluesContainer = document.getElementById('clues-container');
+            cluesContainer.innerHTML = '';
+
+            const filteredWords = WORDS_DATA.filter(w => w.direction === activeDirection);
+            
+            // Count badges
+            document.getElementById('across-count').innerText = WORDS_DATA.filter(w => w.direction === 'across').length;
+            document.getElementById('down-count').innerText = WORDS_DATA.filter(w => w.direction === 'down').length;
+
+            filteredWords.forEach(w => {
+                const isSolved = checkIsWordSolved(w);
+                const isActive = w.id === activeWordId;
+
+                const clueDiv = document.createElement('div');
+                clueDiv.id = `clue-item-${w.id}`;
+                clueDiv.className = `glass-card p-3 rounded-xl cursor-pointer transition flex items-start gap-3 border ${
+                    isActive ? 'border-cyan-400 bg-cyan-950/40 shadow-lg shadow-cyan-500/10' : 'border-slate-700/50 hover:border-slate-500'
+                } ${isSolved ? 'opacity-60' : ''}`;
+
+                clueDiv.innerHTML = `
+                    <div class="w-7 h-7 rounded-lg ${w.category === 'Hardware' ? 'bg-cyan-500/20 text-cyan-300' : 'bg-purple-500/20 text-purple-300'} flex items-center justify-center font-bold text-xs shrink-0">
+                        ${w.number}
+                    </div>
+                    <div class="flex-1 text-xs">
+                        <div class="flex items-center justify-between gap-1 mb-1">
+                            <span class="font-semibold ${isActive ? 'text-cyan-300' : 'text-slate-200'}">
+                                ${w.number}. (${w.word.length} Huruf)
+                            </span>
+                            <span class="text-[10px] px-2 py-0.5 rounded-full font-medium ${
+                                w.category === 'Hardware' ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/30' : 'bg-purple-500/10 text-purple-400 border border-purple-500/30'
+                            }">${w.category}</span>
+                        </div>
+                        <p class="text-slate-300 leading-normal">${w.clue}</p>
+                    </div>
+                    ${isSolved ? '<i class="fa-solid fa-circle-check text-emerald-400 text-base mt-1"></i>' : ''}
+                `;
+
+                clueDiv.addEventListener('click', () => selectWord(w.id));
+                cluesContainer.appendChild(clueDiv);
+            });
+        }
+
+        /* ==========================================================================
+           7. INTERACTION CONTROLLERS
+           ========================================================================== */
+        function selectWord(wordId) {
+            initAudio();
+            const wordObj = WORDS_DATA.find(w => w.id === wordId);
+            if (!wordObj) return;
+
+            activeWordId = wordId;
+            activeDirection = wordObj.direction;
+            
+            // Set focused cell to first empty cell in this word or first letter cell
+            const wordCells = getActiveWordCells(wordObj);
+            const emptyCell = wordCells.find(c => !gridMatrix[c.r][c.c].userInput);
+            if (emptyCell) {
+                focusedCellRow = emptyCell.r;
+                focusedCellCol = emptyCell.c;
+            } else {
+                focusedCellRow = wordObj.row;
+                focusedCellCol = wordObj.col;
+            }
+
+            updateUI();
+            
+            // Scroll active clue into view
+            const clueEl = document.getElementById(`clue-item-${wordId}`);
+            if (clueEl) {
+                clueEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        }
+
+        function handleCellClick(r, c) {
+            initAudio();
+            const cell = gridMatrix[r][c];
+            if (!cell.isFilled) return;
+
+            if (r === focusedCellRow && c === focusedCellCol) {
+                // Toggle direction if cell has 2 intersecting words
+                if (cell.words.length > 1) {
+                    const otherWordId = cell.words.find(id => id !== activeWordId);
+                    if (otherWordId) {
+                        selectWord(otherWordId);
+                        return;
+                    }
+                }
+            }
+
+            // Find matching word in cell
+            let targetWordId = cell.words.find(id => {
+                const w = WORDS_DATA.find(item => item.id === id);
+                return w && w.direction === activeDirection;
+            });
+
+            if (!targetWordId && cell.words.length > 0) {
+                targetWordId = cell.words[0];
+            }
+
+            if (targetWordId) {
+                activeWordId = targetWordId;
+                const w = WORDS_DATA.find(item => item.id === targetWordId);
+                activeDirection = w.direction;
+            }
+
+            focusedCellRow = r;
+            focusedCellCol = c;
+            updateUI();
+        }
+
+        function toggleDirection() {
+            const currentCell = gridMatrix[focusedCellRow]?.[focusedCellCol];
+            if (currentCell && currentCell.words.length > 1) {
+                const otherId = currentCell.words.find(id => id !== activeWordId);
+                if (otherId) selectWord(otherId);
+            } else {
+                const newDir = activeDirection === 'across' ? 'down' : 'across';
+                switchClueTab(newDir);
+            }
+        }
+
+        function switchClueTab(dir) {
+            activeDirection = dir;
+            const btnAcross = document.getElementById('tab-across-btn');
+            const btnDown = document.getElementById('tab-down-btn');
+
+            if (dir === 'across') {
+                btnAcross.className = 'flex-1 py-2 font-bold text-sm text-cyan-400 border-b-2 border-cyan-400 flex items-center justify-center gap-2';
+                btnDown.className = 'flex-1 py-2 font-semibold text-sm text-slate-400 hover:text-slate-200 border-b-2 border-transparent flex items-center justify-center gap-2';
+            } else {
+                btnDown.className = 'flex-1 py-2 font-bold text-sm text-cyan-400 border-b-2 border-cyan-400 flex items-center justify-center gap-2';
+                btnAcross.className = 'flex-1 py-2 font-semibold text-sm text-slate-400 hover:text-slate-200 border-b-2 border-transparent flex items-center justify-center gap-2';
+            }
+
+            const availableWords = WORDS_DATA.filter(w => w.direction === dir);
+            if (availableWords.length > 0 && !availableWords.some(w => w.id === activeWordId)) {
+                selectWord(availableWords[0].id);
+            } else {
+                renderCluesUI();
+            }
+        }
+
+        /* ==========================================================================
+           8. KEYBOARD HANDLERS & INPUT NAVIGATION
+           ========================================================================== */
+        function handlePhysicalKeyDown(e) {
+            if (isGameFinished || focusedCellRow === -1 || focusedCellCol === -1) return;
+
+            const key = e.key.toUpperCase();
+
+            if (key >= 'A' && key <= 'Z' && key.length === 1) {
+                e.preventDefault();
+                inputLetter(key);
+            } else if (e.key === 'Backspace') {
+                e.preventDefault();
+                handleBackspace();
+            } else if (e.key === 'ArrowRight') {
+                e.preventDefault();
+                moveFocus(0, 1);
+            } else if (e.key === 'ArrowLeft') {
+                e.preventDefault();
+                moveFocus(0, -1);
+            } else if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                moveFocus(1, 0);
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                moveFocus(-1, 0);
+            }
+        }
+
+        function handleVirtualKey(key) {
+            if (isGameFinished || focusedCellRow === -1 || focusedCellCol === -1) return;
+            if (key === 'BACKSPACE') {
+                handleBackspace();
+            } else {
+                inputLetter(key);
+            }
+        }
+
+        function inputLetter(char) {
+            const cell = gridMatrix[focusedCellRow][focusedCellCol];
+            if (!cell.isFilled) return;
+
+            cell.userInput = char;
+            playSound('type');
+            
+            // Advance focus to next cell in active word
+            advanceFocus(1);
+            updateUI();
+        }
+
+        function handleBackspace() {
+            const cell = gridMatrix[focusedCellRow][focusedCellCol];
+            if (cell.userInput) {
+                cell.userInput = '';
+            } else {
+                advanceFocus(-1);
+                const prevCell = gridMatrix[focusedCellRow][focusedCellCol];
+                if (prevCell) prevCell.userInput = '';
+            }
+            updateUI();
+        }
+
+        function advanceFocus(step) {
+            const activeWord = WORDS_DATA.find(w => w.id === activeWordId);
+            if (!activeWord) return;
+
+            const cells = getActiveWordCells(activeWord);
+            const currentIdx = cells.findIndex(c => c.r === focusedCellRow && c.c === focusedCellCol);
+
+            if (currentIdx !== -1) {
+                const nextIdx = currentIdx + step;
+                if (nextIdx >= 0 && nextIdx < cells.length) {
+                    focusedCellRow = cells[nextIdx].r;
+                    focusedCellCol = cells[nextIdx].c;
+                }
+            }
+        }
+
+        function moveFocus(dr, dc) {
+            const nr = focusedCellRow + dr;
+            const nc = focusedCellCol + dc;
+            if (nr >= 0 && nr < GRID_ROWS && nc >= 0 && nc < GRID_COLS && gridMatrix[nr][nc].isFilled) {
+                focusedCellRow = nr;
+                focusedCellCol = nc;
+                updateUI();
+            }
+        }
+
+        /* ==========================================================================
+           9. GAME MECHANICS (HINT, CLEAR, CHECK ANSWERS)
+           ========================================================================== */
+        function giveHint() {
+            initAudio();
+            const activeWord = WORDS_DATA.find(w => w.id === activeWordId);
+            if (!activeWord) return;
+
+            const cells = getActiveWordCells(activeWord);
+            const emptyCells = cells.filter(c => gridMatrix[c.r][c.c].userInput !== activeWord.word[cells.indexOf(c)]);
+
+            if (emptyCells.length > 0) {
+                const target = emptyCells[0];
+                const letterIdx = cells.findIndex(c => c.r === target.r && c.c === target.c);
+                gridMatrix[target.r][target.c].userInput = activeWord.word[letterIdx];
+                playSound('correct');
+                updateUI();
+            }
+        }
+
+        function clearCurrentWord() {
+            initAudio();
+            const activeWord = WORDS_DATA.find(w => w.id === activeWordId);
+            if (!activeWord) return;
+
+            const cells = getActiveWordCells(activeWord);
+            cells.forEach(c => {
+                gridMatrix[c.r][c.c].userInput = '';
+                gridMatrix[c.r][c.c].isCorrect = false;
+            });
+            updateUI();
+        }
+
+        function checkAnswers() {
+            initAudio();
+            let correctWordsCount = 0;
+            let totalCorrectLetters = 0;
+
+            WORDS_DATA.forEach(wordObj => {
+                const cells = getActiveWordCells(wordObj);
+                let isWordCorrect = true;
+
+                cells.forEach((c, idx) => {
+                    const cellData = gridMatrix[c.r][c.c];
+                    if (cellData.userInput !== wordObj.word[idx]) {
+                        isWordCorrect = false;
+                    }
+                });
+
+                if (isWordCorrect) {
+                    correctWordsCount++;
+                    cells.forEach(c => gridMatrix[c.r][c.c].isCorrect = true);
+                }
+            });
+
+            if (correctWordsCount === WORDS_DATA.length) {
+                playSound('win');
+                finishGame();
+            } else {
+                playSound('correct');
+                showNotification(`Pemeriksaan Selesai! Kamu telah menjawab ${correctWordsCount} dari 15 soal dengan benar.`);
+            }
+            updateUI();
+        }
+
+        function checkIsWordSolved(wordObj) {
+            const cells = getActiveWordCells(wordObj);
+            return cells.every((c, idx) => gridMatrix[c.r][c.c].userInput === wordObj.word[idx]);
+        }
+
+        /* ==========================================================================
+           10. UI UPDATER & SCORE & TIMER
+           ========================================================================== */
+        function updateUI() {
+            renderGridUI();
+            renderCluesUI();
+            updateActiveClueBanner();
+            updateStatsBar();
+        }
+
+        function updateActiveClueBanner() {
+            const activeWord = WORDS_DATA.find(w => w.id === activeWordId);
+            if (activeWord) {
+                document.getElementById('active-clue-tag').innerText = `${activeWord.number} ${activeWord.direction.toUpperCase()}`;
+                document.getElementById('active-clue-text').innerText = activeWord.clue;
+            }
+        }
+
+        function updateStatsBar() {
+            let solvedCount = 0;
+            WORDS_DATA.forEach(w => {
+                if (checkIsWordSolved(w)) solvedCount++;
+            });
+
+            const score = solvedCount * CONFIG.POINTS_PER_WORD;
+            document.getElementById('progress-display').innerText = `${solvedCount} / ${WORDS_DATA.length}`;
+            document.getElementById('score-display').innerText = score;
+        }
+
+        function startTimer() {
+            secondsElapsed = 0;
+            clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                secondsElapsed++;
+                const mins = String(Math.floor(secondsElapsed / 60)).padStart(2, '0');
+                const secs = String(secondsElapsed % 60).padStart(2, '0');
+                document.getElementById('timer-display').innerText = `${mins}:${secs}`;
+            }, 1000);
+        }
+
+        /* ==========================================================================
+           11. SCREEN FLOW & GAME LIFECYCLE
+           ========================================================================== */
+        function startGame() {
+            initAudio();
+            isGameFinished = false;
+            document.getElementById('welcome-screen').classList.add('hidden');
+            document.getElementById('game-screen').classList.remove('hidden');
+            closeModal('result-modal');
+
+            buildGridData();
+            selectWord(1);
+            startTimer();
+        }
+
+        function finishGame() {
+            isGameFinished = true;
+            clearInterval(timerInterval);
+
+            const mins = String(Math.floor(secondsElapsed / 60)).padStart(2, '0');
+            const secs = String(secondsElapsed % 60).padStart(2, '0');
+            const finalTime = `${mins}:${secs}`;
+            const totalScore = WORDS_DATA.length * CONFIG.POINTS_PER_WORD;
+
+            document.getElementById('res-score').innerText = totalScore;
+            document.getElementById('res-time').innerText = finalTime;
+            document.getElementById('res-accuracy').innerText = '100%';
+
+            openModal('result-modal');
+
+            // Trigger Confetti Celebration
+            if (typeof confetti !== 'undefined') {
+                confetti({
+                    particleCount: 120,
+                    spread: 80,
+                    origin: { y: 0.6 }
+                });
+            }
+        }
+
+        function returnToMenu() {
+            clearInterval(timerInterval);
+            document.getElementById('game-screen').classList.add('hidden');
+            document.getElementById('result-modal').classList.add('hidden');
+            document.getElementById('welcome-screen').classList.remove('hidden');
+        }
+
+        function showConfirmModal(title, message, callback) {
+            document.getElementById('confirm-modal-title').innerText = title;
+            document.getElementById('confirm-modal-msg').innerText = message;
+            
+            const actionBtn = document.getElementById('confirm-modal-action-btn');
+            actionBtn.onclick = function() {
+                closeModal('confirm-modal');
+                if (typeof callback === 'function') callback();
+            };
+            
+            openModal('confirm-modal');
+        }
+
+        function confirmReturnHome() {
+            showConfirmModal(
+                "Kembali ke Menu Utama",
+                "Apakah kamu yakin ingin kembali ke menu utama? Progres permainan yang sedang berlangsung akan direset.",
+                returnToMenu
+            );
+        }
+
+        function confirmRestartGame() {
+            showConfirmModal(
+                "Ulangi Permainan",
+                "Apakah kamu yakin ingin mengulangi permainan dari awal?",
+                startGame
+            );
+        }
+
+        /* ==========================================================================
+           12. UTILITY & MODAL CONTROLLERS
+           ========================================================================== */
+        function openModal(id) {
+            document.getElementById(id).classList.remove('hidden');
+            document.getElementById(id).classList.add('flex');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.add('hidden');
+            document.getElementById(id).classList.remove('flex');
+        }
+
+        function toggleSoftKeyboard() {
+            const kb = document.getElementById('soft-keyboard');
+            kb.classList.toggle('hidden');
+        }
+
+        function adjustGridZoom(delta) {
+            currentZoomScale = Math.min(Math.max(0.7, currentZoomScale + delta), 1.4);
+            document.getElementById('crossword-grid').style.transform = `scale(${currentZoomScale})`;
+        }
+
+        function resetGridZoom() {
+            currentZoomScale = 1.0;
+            document.getElementById('crossword-grid').style.transform = `scale(1.0)`;
+        }
+
+        function showNotification(msg) {
+            const banner = document.getElementById('active-clue-text');
+            const prevText = banner.innerText;
+            banner.innerText = `💡 ${msg}`;
+            setTimeout(() => {
+                banner.innerText = prevText;
+            }, 3500);
+        }
+    </script>
+</body>
+</html>
